@@ -124,7 +124,7 @@ class Thread{
      * @param $ScriptPath
      */
     public static function Start($ScriptPath){
-        pclose(popen("php  " . $ScriptPath . " -ThreadId=".sha1(microtime())." /dev/null &", "r"));
+        pclose(popen("php  " . $ScriptPath . " -ThreadId=".sha1(microtime())." &> /dev/null &", "r"));
     }
 
     /**
