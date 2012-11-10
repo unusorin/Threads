@@ -76,7 +76,6 @@ class Thread
         $memoryBlock = MemoryBlock::get($this->threadPid);
         $memoryBlock->data(serialize($data));
     }
-
     /**
      * register signals to be caught
      */
@@ -94,7 +93,6 @@ class Thread
         $memoryBlock = MemoryBlock::get(getmypid());
         self::$data  = @unserialize($memoryBlock);
     }
-
     /**
      * Handle a specific signal
      *
@@ -140,7 +138,7 @@ class Thread
      */
     public static function start($scriptPath)
     {
-        pclose(popen("php  " . $scriptPath . " -ThreadId=" . sha1(microtime()) . " /dev/null &", "r"));
+        pclose(popen("php  " . $scriptPath . " -ThreadId=" . sha1(microtime()) . " &> /dev/null &", "r"));
     }
 
     /**
