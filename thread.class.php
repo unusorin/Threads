@@ -1,42 +1,46 @@
 <?php
 include_once "memoryblock.class.php";
-class Thread{
+class Thread
+{
 
-    const SignalKill = 1;
-    const SignalStop = 2;
-    const SignalContinue = 3;
-    const SignalCommunicate = 4;
+    const signalKill        = 1;
+    const signalStop        = 2;
+    const signalContinue    = 3;
+    const signalCommunicate = 4;
 
-    public $User = NULL;
-    public $ThreadPid = NULL;
-    public $Time = NULL;
+    public $user = NULL;
+    public $threadPid = NULL;
+    public $time = NULL;
 
-    public static $Paused = FALSE;
-    public static $AutoPause = TRUE;
-    public static $Data = array();
+    public static $paused = FALSE;
+    public static $autoPause = TRUE;
+    public static $data = array();
 
-    public function __construct($PID=NULL,$User=NULL,$Time=NULL){
+    public function __construct($PID = NULL, $user = NULL, $time = NULL)
+    {
 
-        $this->ThreadPid=$PID;
-        $this->User=$User;
-        $this->Time=$Time;
+        $this->threadPid = $PID;
+        $this->user      = $user;
+        $this->time      = $time;
 
     }
 
     /**
      * send a signal to a thread
-     * @param Thread $Signal
+     *
+     * @param Thread $signal
      */
-    public function SendSignal($Signal){
-        switch($Signal){
-            case Thread::SignalKill:
-                $this->KillThread();
+    public function sendSignal($signal)
+    {
+        switch ($signal) {
+            case Thread::signalKill:
+                $this->killThread();
                 break;
-            case Thread::SignalContinue:
-                exec("kill -12 ".$this->ThreadPid);
+            case Thread::signalContinue:
+                exec("kill -12 " . $this->threadPid);
                 break;
-            case Thread::SignalStop:
-                exec("kill -10 ".$this->ThreadPid);
+            case Thread::signalStop:
+                exec("kill -10 " . $this->threadPid);
                 break;
         }
     }
@@ -44,57 +48,66 @@ class Thread{
     /**
      * Pause current thread
      */
-    public function Pause()
+    public function pause()
     {
-        while (self::$Paused) {
+        while (self::$paused) {
             pcntl_signal_dispatch();
             sleep(1);
         }
     }
 
     /**
-    * kill a thread
-    * @return string
-    */
-    private function KillThread(){
-        return shell_exec("kill -9 " . $this->ThreadPid);
+     * kill a thread
+     *
+     * @return string
+     */
+    private function killThread()
+    {
+        return shell_exec("kill -9 " . $this->threadPid);
     }
 
     /**
      * send data to a thread
-     * @param array $Data
+     *
+     * @param array $data
      */
-    public function SendData($Data){
-        $MemoryBlock=MemoryBlock::Get($this->ThreadPid);
-        $MemoryBlock->Data(serialize($Data));
+    public function sendData($data)
+    {
+        $memoryBlock = MemoryBlock::get($this->threadPid);
+        $memoryBlock->data(serialize($data));
     }
+
     /**
-    * register signals to be caught
-    */
-    public static function RegisterSignals(){
-        $ClassName = get_called_class();
-        pcntl_signal(SIGUSR1,get_called_class()."::HandleSignal");
-        pcntl_signal(SIGUSR2,get_called_class()."::HandleSignal");
+     * register signals to be caught
+     */
+    public static function registerSignals()
+    {
+        pcntl_signal(SIGUSR1, get_called_class() . "::HandleSignal");
+        pcntl_signal(SIGUSR2, get_called_class() . "::HandleSignal");
     }
 
     /**
      * receive data from thread controller
      */
-    public static function ReceiveData(){
-        $MemoryBlock= MemoryBlock::Get(getmypid());
-        self::$Data=@unserialize($MemoryBlock);
+    public static function receiveData()
+    {
+        $memoryBlock = MemoryBlock::get(getmypid());
+        self::$data  = @unserialize($memoryBlock);
     }
+
     /**
-    * Handle a specific signal
-    * @param int $Signal
-    */
-    public static function HandleSignal($Signal){
-        switch($Signal){
+     * Handle a specific signal
+     *
+     * @param int $signal
+     */
+    public static function handleSignal($signal)
+    {
+        switch ($signal) {
             case SIGUSR1:
-                self::$Paused=TRUE;
+                self::$paused = TRUE;
                 break;
             case SIGUSR2:
-                self::$Paused=FALSE;
+                self::$paused = FALSE;
                 break;
         }
     }
@@ -102,38 +115,43 @@ class Thread{
     /**
      * start the current thread
      */
-    public function RunThread(){
-        self::RegisterSignals();
-        while(TRUE){
+    public function runThread()
+    {
+        self::registerSignals();
+        while (TRUE) {
             //resolve pending signals
             pcntl_signal_dispatch();
 
-            if(self::$Paused){
-                $this->Pause();
+            if (self::$paused) {
+                $this->pause();
             }
-            self::ReceiveData();
-            $this->ToRun();
-            if(self::$AutoPause){
-                self::$Paused=TRUE;
+            self::receiveData();
+            $this->toRun();
+            if (self::$autoPause) {
+                self::$paused = TRUE;
             }
         }
     }
 
     /**
      * start a php script asynchronous
-     * @param $ScriptPath
+     *
+     * @param $scriptPath
      */
-    public static function Start($ScriptPath){
-        pclose(popen("php  " . $ScriptPath . " -ThreadId=".sha1(microtime())." /dev/null &", "r"));
+    public static function start($scriptPath)
+    {
+        pclose(popen("php  " . $scriptPath . " -ThreadId=" . sha1(microtime()) . " /dev/null &", "r"));
     }
 
     /**
      * list all threads
+     *
      * @return array Thread
      */
-    public static function ListAll(){
+    public static function listAll()
+    {
 
-        $job  = shell_exec("ps aux | grep \"-ThreadId\"");
+        $job = shell_exec("ps aux | grep \"-ThreadId\"");
 
         $rows = explode("\n", $job);
         $jobs = array();
@@ -142,23 +160,25 @@ class Thread{
                 $parts  = explode(" ", $row);
                 $index  = -1;
                 $_parts = array();
-                foreach ($parts as $key=> $part) {
+                foreach ($parts as $key => $part) {
                     if (trim($part) == "") {
-                        unset( $parts[$key] );
+                        unset($parts[$key]);
                     } else {
                         $_parts[++$index] = $part;
                     }
                 }
-                $jobs[] = new Thread($_parts[1],$_parts[0],$_parts[8]);
+                $jobs[] = new Thread($_parts[1], $_parts[0], $_parts[8]);
             }
 
         }
         return $jobs;
     }
+
     /**
      * code to be executed in the loop
      */
-    public function ToRun(){
+    public function toRun()
+    {
 
     }
 
