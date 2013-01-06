@@ -76,6 +76,7 @@ class Thread
         $memoryBlock = MemoryBlock::get($this->threadPid);
         $memoryBlock->data(serialize($data));
     }
+
     /**
      * register signals to be caught
      */
@@ -93,6 +94,7 @@ class Thread
         $memoryBlock = MemoryBlock::get(getmypid());
         self::$data  = @unserialize($memoryBlock);
     }
+
     /**
      * Handle a specific signal
      *
@@ -170,6 +172,30 @@ class Thread
 
         }
         return $jobs;
+    }
+
+    /**
+     * fork current process and execute the code asynchronously
+     *
+     * @param       $callback callback to be executed in the child process
+     * @param bool  $wait     flag if the parent wait for the child (default false)
+     * @param array $params   params to be passed to the callback function
+     */
+    public static function fork($callback, $wait = FALSE, $params = array())
+    {
+        $pid = pcntl_fork();
+        if ($pid == -1) {
+            return;
+        } else {
+            if ($pid) {
+                if ($wait) {
+                    pcntl_wait($status);
+                }
+            } else {
+                call_user_func_array($callback, $params);
+                exit;
+            }
+        }
     }
 
     /**
