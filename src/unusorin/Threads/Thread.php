@@ -9,25 +9,43 @@ namespace unusorin\Threads;
  * Class Thread
  * @package unusorin\Threads
  */
+
+use unusorin\Threads\Exceptions\ThreadException;
+
 abstract class Thread
 {
     public static $sleepInterval = 1;
     public static $autoPause = true;
+    public static $loop = true;
     protected $paused = false;
+    protected $identifier = null;
 
-    public function run()
+    public function __construct($identifier = null)
+    {
+        $this->identifier = is_null($identifier) ? uniqid("thread_", true) : $identifier;
+    }
+
+    public function run($wait = false)
     {
         $pid = pcntl_fork();
         if ($pid == -1) {
-            die('Could not start thread');
+            throw new ThreadException("Could not fork", ThreadException::COULD_NOT_FORK);
         } else {
             if ($pid) {
-                exit;
+                if ($wait) {
+                    pcntl_wait($status);
+                    return $status;
+                }
+                return $pid;
             } else {
+                $this->savePID();
                 $this->registerSignals();
                 while (true) {
                     $this->sleepWhilePaused();
                     $this->toRun();
+                    if (!static::$loop) {
+                        exit();
+                    }
                     if (static::$autoPause) {
                         $this->paused = true;
                     }
@@ -70,6 +88,19 @@ abstract class Thread
         while ($this->paused) {
             sleep(static::$sleepInterval);
         }
+    }
+
+    protected function savePID()
+    {
+        if (defined('THREADS_DIR')) {
+            $dir = THREADS_DIR;
+        } else {
+            $dir = 'threads';
+        }
+        if (!is_dir($dir)) {
+            mkdir($dir);
+        }
+        file_put_contents($dir . "/" . $this->identifier . ".pid", getmypid());
     }
 
     abstract public function toRun();
