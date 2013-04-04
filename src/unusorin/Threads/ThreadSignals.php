@@ -5,9 +5,13 @@
  */
 namespace unusorin\Threads;
 
+/**
+ * Class ThreadSignals
+ * @package unusorin\Threads
+ */
 final class ThreadSignals
 {
-    const KILL   = 1;
+    const KILL   = 9;
     const STOP   = SIGUSR1;
     const RESUME = SIGUSR2;
 
